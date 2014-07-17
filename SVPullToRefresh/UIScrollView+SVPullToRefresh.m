@@ -39,7 +39,6 @@ static CGFloat const SVPullToRefreshViewHeight = 60;
 @property(nonatomic, assign) BOOL isObserving;
 
 - (void)resetScrollViewContentInset;
-- (void)setScrollViewContentInsetForLoading;
 - (void)setScrollViewContentInset:(UIEdgeInsets)insets;
 
 @end
@@ -233,20 +232,6 @@ static char UIScrollViewPullToRefreshView;
     [self setScrollViewContentInset:currentInsets];
 }
 
-- (void)setScrollViewContentInsetForLoading {
-    CGFloat offset = MAX(self.scrollView.contentOffset.y * -1, 0);
-    UIEdgeInsets currentInsets = self.scrollView.contentInset;
-    switch (self.position) {
-        case SVPullToRefreshPositionTop:
-            currentInsets.top = MIN(offset, self.originalTopInset + self.bounds.size.height);
-            break;
-        case SVPullToRefreshPositionBottom:
-            currentInsets.bottom = MIN(offset, self.originalBottomInset + self.bounds.size.height);
-            break;
-    }
-    [self setScrollViewContentInset:currentInsets];
-}
-
 - (void)setScrollViewContentInset:(UIEdgeInsets)contentInset {
     [UIView animateWithDuration:0.3
                           delay:0
@@ -297,7 +282,7 @@ static char UIScrollViewPullToRefreshView;
         // We don't max or min the offset
         [self updateForPercentage:contentOffset.y / scrollOffsetThreshold];
         
-        if(!self.scrollView.isDragging && self.state == SVPullToRefreshStateTriggered)
+        if(self.scrollView.isDragging && self.state == SVPullToRefreshStateTriggered)
             self.state = SVPullToRefreshStateLoading;
         else if(contentOffset.y < scrollOffsetThreshold && self.scrollView.isDragging && self.state == SVPullToRefreshStateStopped && self.position == SVPullToRefreshPositionTop)
             self.state = SVPullToRefreshStateTriggered;
@@ -312,6 +297,9 @@ static char UIScrollViewPullToRefreshView;
         UIEdgeInsets contentInset;
         switch (self.position) {
             case SVPullToRefreshPositionTop:
+                if (self.scrollView.isDragging) {
+                    return;
+                }
                 offset = MAX(self.scrollView.contentOffset.y * -1, 0.0f);
                 offset = MIN(offset, self.originalTopInset + self.bounds.size.height);
                 contentInset = self.scrollView.contentInset;
@@ -405,8 +393,6 @@ static char UIScrollViewPullToRefreshView;
             break;
             
         case SVPullToRefreshStateLoading:
-            [self setScrollViewContentInsetForLoading];
-            
             if(previousState == SVPullToRefreshStateTriggered && pullToRefreshActionHandler)
                 pullToRefreshActionHandler();
             
